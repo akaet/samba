@@ -70,6 +70,17 @@ include() { local includefile="$1" file=/etc/samba/smb.conf
     echo "include = $includefile" >> "$file"
 }
 
+### parse: safely split an option string on ';' and call the given handler
+# Arguments:
+#   handler) function to call
+#   str)     option string, fields separated by ';'
+# Return: handler called with each field as a separate argument (no eval)
+parse() { local handler="$1" str="$2" args=()
+    IFS=';' read -ra args <<< "$str"
+    (( ${#args[@]} )) || args=("")
+    "$handler" "${args[@]}"
+}
+
 ### import: import a smbpasswd file
 # Arguments:
 #   file) file to import
@@ -92,7 +103,6 @@ perms() { local i file=/etc/samba/smb.conf
         find $i -type f ! -perm 0664 -exec chmod 0664 {} \;
     done
 }
-export -f perms
 
 ### recycle: disable recycle bin
 # Arguments:
@@ -139,14 +149,6 @@ share() { local share="$1" path="$2" browsable="${3:-yes}" ro="${4:-yes}" \
         echo "   comment = $(tr ',' ' ' <<< $comment)" >>$file
     echo "" >>$file
     [[ -d $path ]] || mkdir -p $path
-}
-
-### smb: disable SMB2 minimum
-# Arguments:
-#   none)
-# Return: result
-smb() { local file=/etc/samba/smb.conf
-    sed -i 's/\([^#]*min protocol *=\).*/\1 LANMAN1/' $file
 }
 
 ### user: add a user
@@ -203,8 +205,7 @@ Options (fields in '[]' are optional, '<>' are required):
     -n          Start the 'nmbd' daemon to advertise the shares
     -p          Set ownership and permissions on the shares
     -r          Disable recycle bin for shares
-    -S          Disable SMB2 minimum version
-    -s \"<name;/path>[;browse;readonly;guest;users;admins;writelist;comment]\"
+    -s "<name;/path>[;browse;readonly;guest;users;admins;writelist;comment]"
                 Configure a share
                 required arg: \"<name>;</path>\"
                 <name> is how it's called for clients
@@ -241,19 +242,18 @@ The 'command' (if provided and valid) will be run instead of samba
 [[ "${USERID:-""}" =~ ^[0-9]+$ ]] && usermod -u $USERID -o smbuser
 [[ "${GROUPID:-""}" =~ ^[0-9]+$ ]] && groupmod -g $GROUPID -o smb
 
-while getopts ":hc:G:g:i:nprs:Su:Ww:I:" opt; do
+while getopts ":hc:G:g:i:nprs:u:Ww:I:" opt; do
     case "$opt" in
         h) usage ;;
         c) charmap "$OPTARG" ;;
-        G) eval generic $(sed 's/^/"/; s/$/"/; s/;/" "/g' <<< $OPTARG) ;;
+        G) parse generic "$OPTARG" ;;
         g) global "$OPTARG" ;;
         i) import "$OPTARG" ;;
         n) NMBD="true" ;;
         p) PERMISSIONS="true" ;;
         r) recycle ;;
-        s) eval share $(sed 's/^/"/; s/$/"/; s/;/" "/g' <<< $OPTARG) ;;
-        S) smb ;;
-        u) eval user $(sed 's/^/"/; s/$/"/; s/;/" "/g' <<< $OPTARG) ;;
+        s) parse share "$OPTARG" ;;
+        u) parse user "$OPTARG" ;;
         w) workgroup "$OPTARG" ;;
         W) widelinks ;;
         I) include "$OPTARG" ;;
@@ -265,7 +265,7 @@ shift $(( OPTIND - 1 ))
 
 [[ "${CHARMAP:-""}" ]] && charmap "$CHARMAP"
 while read i; do
-    eval generic $(sed 's/^/"/; s/$/"/; s/;/" "/g' <<< $i)
+    parse generic "$i"
 done < <(env | awk '/^GENERIC[0-9=_]/ {sub (/^[^=]*=/, "", $0); print}')
 while read i; do
     global "$i"
@@ -273,25 +273,25 @@ done < <(env | awk '/^GLOBAL[0-9=_]/ {sub (/^[^=]*=/, "", $0); print}')
 [[ "${IMPORT:-""}" ]] && import "$IMPORT"
 [[ "${RECYCLE:-""}" ]] && recycle
 while read i; do
-    eval share $(sed 's/^/"/; s/$/"/; s/;/" "/g' <<< $i)
+    parse share "$i"
 done < <(env | awk '/^SHARE[0-9=_]/ {sub (/^[^=]*=/, "", $0); print}')
-[[ "${SMB:-""}" ]] && smb
 while read i; do
-    eval user $(sed 's/^/"/; s/$/"/; s/;/" "/g' <<< $i)
+    parse user "$i"
 done < <(env | awk '/^USER[0-9=_]/ {sub (/^[^=]*=/, "", $0); print}')
 [[ "${WORKGROUP:-""}" ]] && workgroup "$WORKGROUP"
 [[ "${WIDELINKS:-""}" ]] && widelinks
 [[ "${INCLUDE:-""}" ]] && include "$INCLUDE"
 [[ "${PERMISSIONS:-""}" ]] && perms &
 
-if [[ $# -ge 1 && -x $(which $1 2>&-) ]]; then
-    exec "$@"
-elif [[ $# -ge 1 ]]; then
+if [[ $# -ge 1 ]]; then
+    if command -v "$1" >/dev/null 2>&1; then
+        exec "$@"
+    fi
     echo "ERROR: command not found: $1"
     exit 13
-elif ps -ef | egrep -v grep | grep -q smbd; then
+elif pgrep -x smbd >/dev/null; then
     echo "Service already running, please restart container to apply changes"
 else
     [[ ${NMBD:-""} ]] && ionice -c 3 nmbd -D
-    exec ionice -c 3 smbd -FS --no-process-group </dev/null
+    exec ionice -c 3 smbd -F --no-process-group </dev/null
 fi

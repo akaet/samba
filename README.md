@@ -16,17 +16,17 @@ By default there are no shares configured, additional ones can be added.
 
 ## Hosting a Samba instance
 
-    sudo docker run -it -p 139:139 -p 445:445 -d dperson/samba -p
+    sudo docker run -it -p 139:139 -p 445:445 -d ghcr.io/akaet/samba -p
 
 OR set local storage:
 
     sudo docker run -it --name samba -p 139:139 -p 445:445 \
                 -v /path/to/directory:/mount \
-                -d dperson/samba -p
+                -d ghcr.io/akaet/samba -p
 
 ## Configuration
 
-    sudo docker run -it --rm dperson/samba -h
+    sudo docker run -it --rm ghcr.io/akaet/samba -h
     Usage: samba.sh [-opt] [command]
     Options (fields in '[]' are optional, '<>' are required):
         -h          This help
@@ -42,7 +42,6 @@ OR set local storage:
         -n          Start the 'nmbd' daemon to advertise the shares
         -p          Set ownership and permissions on the shares
         -r          Disable recycle bin for shares
-        -S          Disable SMB2 minimum version
         -s "<name;/path>[;browse;readonly;guest;users;admins;writelist;comment]"
                     Configure a share
                     required arg: "<name>;</path>"
@@ -84,7 +83,6 @@ ENVIRONMENT VARIABLES
  * `PERMISSIONS` - As above, set file permissions on all shares
  * `RECYCLE` - As above, disable recycle bin
  * `SHARE` - As above, setup a share (See NOTE3 below)
- * `SMB` - As above, disable SMB2 minimum version
  * `TZ` - Set a timezone, IE `EST5EDT`
  * `USER` - As above, setup a user (See NOTE3 below)
  * `WIDELINKS` - As above, allow access wide symbolic links
@@ -109,11 +107,11 @@ Any of the commands can be run at creation with `docker run` or later with
 
 ### Setting the Timezone
 
-    sudo docker run -it -e TZ=EST5EDT -p 139:139 -p 445:445 -d dperson/samba -p
+    sudo docker run -it -e TZ=EST5EDT -p 139:139 -p 445:445 -d ghcr.io/akaet/samba -p
 
 ### Start an instance creating users and shares:
 
-    sudo docker run -it -p 139:139 -p 445:445 -d dperson/samba -p \
+    sudo docker run -it -p 139:139 -p 445:445 -d ghcr.io/akaet/samba -p \
                 -u "example1;badpass" \
                 -u "example2;badpass" \
                 -s "public;/share" \
@@ -134,7 +132,7 @@ Add the `-p` option to the end of your options to the container, or set the
 
     sudo docker run -it --name samba -p 139:139 -p 445:445 \
                 -v /path/to/directory:/mount \
-                -d dperson/samba -p
+                -d ghcr.io/akaet/samba -p
 
 If changing the permissions of your files is not possible in your setup you
 can instead set the environment variables `USERID` and `GROUPID` to the
@@ -148,7 +146,7 @@ docker_compose.yml files, IE:
 
     sudo docker run -it --name samba -m 512m -p 139:139 -p 445:445 \
                 -v /path/to/directory:/mount \
-                -d dperson/samba -p
+                -d ghcr.io/akaet/samba -p
 
 * Attempting to connect with the `smbclient` commandline tool. By default samba
 still tries to use SMB1, which is depriciated and has security issues. This

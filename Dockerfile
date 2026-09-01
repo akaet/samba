@@ -1,9 +1,11 @@
-FROM alpine
-MAINTAINER David Personette <dperson@gmail.com>
+FROM alpine:3.24
+
+LABEL org.opencontainers.image.authors="David Personette <dperson@gmail.com>" \
+      org.opencontainers.image.title="samba" \
+      org.opencontainers.image.description="Samba file server (SMB/CIFS) container"
 
 # Install samba
-RUN apk --no-cache --no-progress upgrade && \
-    apk --no-cache --no-progress add bash samba shadow tini tzdata && \
+RUN apk --no-cache --no-progress add --upgrade bash samba shadow tini tzdata && \
     addgroup -S smb && \
     adduser -S -D -H -h /tmp -s /sbin/nologin -G smb -g 'Samba User' smbuser &&\
     file="/etc/samba/smb.conf" && \
@@ -16,6 +18,7 @@ RUN apk --no-cache --no-progress upgrade && \
     sed -i 's|^;* *\(short preserve case = \).*|   \1yes|' $file && \
     sed -i 's|^;* *\(default case = \).*|   \1lower|' $file && \
     sed -i '/Share Definitions/,$d' $file && \
+    echo '   log file = /dev/stdout' >>$file && \
     echo '   pam password change = yes' >>$file && \
     echo '   map to guest = bad user' >>$file && \
     echo '   usershare allow guests = yes' >>$file && \
