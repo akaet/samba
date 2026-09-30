@@ -18,7 +18,6 @@ RUN apk --no-cache --no-progress add --upgrade bash samba shadow tini tzdata && 
     sed -i 's|^;* *\(short preserve case = \).*|   \1yes|' $file && \
     sed -i 's|^;* *\(default case = \).*|   \1lower|' $file && \
     sed -i '/Share Definitions/,$d' $file && \
-    echo '   log file = /dev/stdout' >>$file && \
     echo '   pam password change = yes' >>$file && \
     echo '   map to guest = bad user' >>$file && \
     echo '   usershare allow guests = yes' >>$file && \
@@ -29,9 +28,6 @@ RUN apk --no-cache --no-progress add --upgrade bash samba shadow tini tzdata && 
     echo '   force user = smbuser' >>$file && \
     echo '   force group = smb' >>$file && \
     echo '   follow symlinks = yes' >>$file && \
-    echo '   load printers = no' >>$file && \
-    echo '   printing = bsd' >>$file && \
-    echo '   printcap name = /dev/null' >>$file && \
     echo '   disable spoolss = yes' >>$file && \
     echo '   strict locking = no' >>$file && \
     echo '   aio read size = 0' >>$file && \
