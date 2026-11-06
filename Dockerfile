@@ -29,7 +29,7 @@ RUN apk --no-cache --no-progress add --upgrade bash samba shadow tini tzdata && 
     echo '   force group = smb' >>$file && \
     echo '   follow symlinks = yes' >>$file && \
     echo '   disable spoolss = yes' >>$file && \
-    echo '   strict locking = no' >>$file && \
+    echo '   strict locking = auto' >>$file && \
     echo '   aio read size = 0' >>$file && \
     echo '   aio write size = 0' >>$file && \
     echo '   vfs objects = catia fruit recycle streams_xattr' >>$file && \

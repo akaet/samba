@@ -103,7 +103,7 @@ IE `SHARE` also will work for `SHARE2`, `SHARE3`... `SHAREx`, etc.
 ## Examples
 
 Any of the commands can be run at creation with `docker run` or later with
-`docker exec -it samba samba.sh` (as of version 1.3 of docker).
+`docker exec -it samba samba.sh`.
 
 ### Setting the Timezone
 
@@ -148,11 +148,10 @@ docker_compose.yml files, IE:
                 -v /path/to/directory:/mount \
                 -d ghcr.io/akaet/samba -p
 
-* Attempting to connect with the `smbclient` commandline tool. By default samba
-still tries to use SMB1, which is depriciated and has security issues. This
-container defaults to SMB2, which for no decernable reason even though it's
-supported is disabled by default so run the command as `smbclient -m SMB3`, then
-any other options you would specify.
+* Attempting to connect with the `smbclient` commandline tool. This container
+sets `client min protocol = SMB2_10` and `server min protocol = SMB2_10`, so
+clients that still start with SMB1 or SMB2_02 will fail to negotiate. Run the
+command as `smbclient -m SMB3`, then any other options you would specify.
 
 ## Issues
 
